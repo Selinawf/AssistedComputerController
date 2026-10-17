@@ -265,6 +265,8 @@ def run_detector():
 
         elif command == "stop_typing":
             speech_typer.stop()
+            if nose_cursor.enabled:
+                nose_cursor.unfreeze()
             status = "DICTATION OFF"
 
         elif command == "new_line":
