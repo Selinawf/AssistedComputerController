@@ -29,22 +29,21 @@ COMMANDS = {
     "enable blink": "enable_blink",
     "computer disable blink": "disable_blink",
     "disable blink": "disable_blink",
-    
-    # Nose tracking commands
-    "computer enable nose": "enable_nose",
-    "enable nose": "enable_nose",
-
-    "computer disable nose": "disable_nose",
-    "disable nose": "disable_nose",
-
-    "computer recenter nose": "recenter_nose",
-    "recenter nose": "recenter_nose",
-
-    "computer freeze cursor": "freeze_cursor",
-    "freeze cursor": "freeze_cursor",
-
-    "computer unfreeze cursor": "unfreeze_cursor",
-    "unfreeze cursor": "unfreeze_cursor",
+    # Nose commands — common Vosk misrecognitions
+    "enable knows": "enable_nose",
+    "enable know is": "enable_nose",
+    "computer enable knows": "enable_nose",
+    "computer enable know is": "enable_nose",
+    "disable knows": "disable_nose",
+    "disable know is": "disable_nose",
+    "computer disable knows": "disable_nose",
+    "computer disable know is": "disable_nose",
+    "recenter knows": "recenter_nose",
+    "recenter know is": "recenter_nose",
+    "freeze knows": "freeze_cursor",
+    "freeze know is": "freeze_cursor",
+    "unfreeze knows": "unfreeze_cursor",
+    "unfreeze know is": "unfreeze_cursor",
 }
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}
@@ -104,9 +103,14 @@ def run_voice_worker():
         ):
             print("READY", flush=True)
             while True:
-                if (typing_mode and last_typing_time is not None
-                        and time.monotonic() - last_typing_time >= TYPING_TIMEOUT):
-                    print("INFO:Typing stopped after 10 seconds of inactivity", flush=True)
+                if (
+                    typing_mode
+                    and last_typing_time is not None
+                    and time.monotonic() - last_typing_time >= TYPING_TIMEOUT
+                ):
+                    print(
+                        "INFO:Typing stopped after 10 seconds of inactivity", flush=True
+                    )
                     stop_typing()
 
                 try:
@@ -144,22 +148,46 @@ def run_voice_worker():
                         print(f"TYPE:{words}", flush=True)
                     continue
 
-
                 # First attempt an exact match
                 command = COMMANDS.get(phrase)
+                
+                if command is None:
+                    words = phrase.split()
+
+                    if "enable" in words and any(
+                        word in words for word in ("nose", "knows")
+                    ):
+                        command = "enable_nose"
+
+                    elif "disable" in words and any(
+                        word in words for word in ("nose", "knows")
+                    ):
+                        command = "disable_nose"
+
+                    elif "recenter" in words and any(
+                        word in words for word in ("nose", "knows")
+                    ):
+                        command = "recenter_nose"
+
+                    elif "freeze" in words and any(
+                        word in words for word in ("nose", "knows")
+                    ):
+                        command = "freeze_cursor"
+
+                    elif "unfreeze" in words and any(
+                        word in words for word in ("nose", "knows")
+                    ):
+                        command = "unfreeze_cursor"
 
                 # Accept common Vosk misrecognitions
                 if command is None:
                     words = set(phrase.split())
 
-                    if (
-                        "calibration" in words
-                        and (
-                            "computer" in words
-                            or "computers" in words
-                            or "start" in words
-                            or "are" in words
-                        )
+                    if "calibration" in words and (
+                        "computer" in words
+                        or "computers" in words
+                        or "start" in words
+                        or "are" in words
                     ):
                         command = "calibrate"
                 if command:
@@ -246,7 +274,11 @@ class VoiceListener:
         finally:
             self.ready = False
             self.typing_mode = False
-            if process.poll() is not None and process.returncode not in (0, -15) and self.error is None:
+            if (
+                process.poll() is not None
+                and process.returncode not in (0, -15)
+                and self.error is None
+            ):
                 self.error = "Voice process stopped unexpectedly"
 
     def get_commands(self):

@@ -256,6 +256,10 @@ def run_detector():
 
         elif command == "start_typing":
             disable_mouse()
+
+            if nose_cursor.enabled:
+                nose_cursor.freeze()
+
             speech_typer.start()
             status = "DICTATION ON"
 
@@ -476,7 +480,11 @@ def run_detector():
                             frame,
                         )
 
-                        if calibrator.finished:
+                        if calibrator.stage == "failed":
+                            calibrating = False
+                            status = "Tongue calibration failed - press C to retry"
+
+                        elif calibrator.finished:
                             calibrating = False
                             waiting_for_release = True
 
@@ -503,7 +511,7 @@ def run_detector():
 
                         tongue_visible = (
                             tongue.threshold is not None
-                            and score > tongue.threshold
+                            and tongue.is_tongue_score(score)
                             and jaw_open > 0.12
                         )
 
@@ -548,13 +556,26 @@ def run_detector():
                                 jaw_open,
                                 now,
                             )
+    
+                            if right_click:
+                                print(
+                                    "TONGUE GESTURE CONFIRMED | "
+                                    f"Eyebrow highlighting={eyebrows.highlighting} | "
+                                    f"Dragging={mouse.dragging}",
+                                    flush=True
+                                )
 
-                            if (
-                                right_click
-                                and not eyebrows.highlighting
-                                and not mouse.dragging
-                            ):
-                                mouse.right_click()
+                                if (
+                                    not eyebrows.highlighting
+                                    and not mouse.dragging
+                                ):
+                                    print("RIGHT CLICK!", flush=True)
+                                    mouse.right_click()
+                                else:
+                                    print(
+                                        "Right-click blocked by highlighting/dragging",
+                                        flush=True
+                                    )
 
                             # DOUBLE BLINK LEFT CLICK
                             if blink_detector.enabled:
