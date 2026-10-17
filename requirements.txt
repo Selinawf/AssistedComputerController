@@ -1,1 +1,9 @@
+<<<<<<< HEAD
 3
+=======
+
+mediapipe
+opencv-python
+numpy
+pyautogui
+>>>>>>> 89dafc202f0bbb1cac13a452d7a17c2e4bd9f8c1
