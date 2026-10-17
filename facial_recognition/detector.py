@@ -4,6 +4,10 @@ import time
 
 import cv2
 import mediapipe as mp
+import pyautogui
+
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
 from controls.mouse_actions import MouseActions
 from facial_recognition.calibration import AutoCalibrator
@@ -130,29 +134,19 @@ def run_detector():
     # --------------------------------------
     # INITIALIZE CAMERA FIRST
     # --------------------------------------
+    pyautogui.FAILSAFE = True
+    screen_w, screen_h = pyautogui.size()
 
-    camera = cv2.VideoCapture(
-        0,
-        cv2.CAP_AVFOUNDATION
-    )
-
+    camera = cv2.VideoCapture(0)
     if not camera.isOpened():
         raise RuntimeError("Cannot open webcam")
 
-    # Allow MacBook camera to initialize
-    time.sleep(2)
-
-    success, test_frame = camera.read()
-
-    if not success or test_frame is None:
-        camera.release()
-        raise RuntimeError(
-            "Camera opened but cannot capture frames"
-        )
-
-    print(
-        "Webcam initialized successfully!",
-        flush=True
+    options = vision.FaceLandmarkerOptions(
+        base_options=python.BaseOptions(
+            model_asset_path=MODEL_PATH
+        ),
+        running_mode=vision.RunningMode.VIDEO,
+        num_faces=1
     )
 
     # --------------------------------------

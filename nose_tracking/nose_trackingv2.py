@@ -10,12 +10,12 @@ from mediapipe.tasks.python import vision
 MODEL_PATH = "face_landmarker.task"
 
 # Adjust these settings
-DEAD_ZONE_X = 1.5       # Minimum left/right tilt, degrees
-DEAD_ZONE_Y = 0.02     # Minimum up/down movement
+DEAD_ZONE_X = 3.5       # Minimum left/right tilt, degrees
+DEAD_ZONE_Y = 0.05     # Minimum up/down movement
 MAX_TILT_X = 10.0       # Tilt needed for maximum horizontal speed
 MAX_TILT_Y = 0.12       # Normalized nod needed for max vertical speed
-SPEED_X = 25.0          # Horizontal speed in pixels per frame
-SPEED_Y = 20.0          # Vertical speed in pixels per frame
+SPEED_X = 30.0          # Horizontal speed in pixels per frame
+SPEED_Y = 22.0          # Vertical speed in pixels per frame
 SMOOTHING = 0.25
 
 pyautogui.FAILSAFE = True
