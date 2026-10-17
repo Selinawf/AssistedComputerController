@@ -98,6 +98,22 @@ class AutoCalibrator:
         self.draw(frame)
         return self.finished
 
+    
+    def reset(self):
+        self.stage = "ready"
+        self.stage_start = None
+        self.samples = []
+        self.baseline = None
+        self.finished = False
+
+        self.tongue.baseline = None
+        self.tongue.threshold = None
+        self.tongue.reset()
+
+        self.message = "Preparing calibration..."
+
+        print("Calibration restarted!")
+
     def draw(self, frame):
         height, width = frame.shape[:2]
 

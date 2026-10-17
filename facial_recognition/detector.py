@@ -9,13 +9,12 @@ from controls.mouse_actions import MouseActions
 from facial_recognition.calibration import AutoCalibrator
 from facial_recognition.features.tongue_detection import TongueDetector
 from facial_recognition.features.eyebrow_highlight import EyebrowHighlighter
-
+from voice_control.listener import VoiceListener
+from voice_control.speech_typing import SpeechTyper
 
 # ==========================================
 # SETTINGS
 # ==========================================
-
-ENABLE_CLICKS = False
 
 MODEL_PATH = (
     Path(__file__).resolve().parent.parent
@@ -35,7 +34,6 @@ RunningMode = mp.tasks.vision.RunningMode
 def draw_landmarks(frame, landmarks):
     height, width = frame.shape[:2]
 
-    # Draw all facial landmarks
     for point in landmarks:
         x = int(point.x * width)
         y = int(point.y * height)
@@ -48,7 +46,6 @@ def draw_landmarks(frame, landmarks):
             -1
         )
 
-    # Draw eye outlines
     eyes = [
         [33, 160, 158, 133, 153, 144],
         [362, 385, 387, 263, 373, 380]
@@ -77,7 +74,6 @@ def draw_landmarks(frame, landmarks):
                 2
             )
 
-    # Draw iris landmarks
     if len(landmarks) >= 478:
         for index in range(468, 478):
             point = landmarks[index]
@@ -95,7 +91,7 @@ def draw_landmarks(frame, landmarks):
 
 
 # ==========================================
-# DRAW TEXT ON WEBCAM
+# DRAW TEXT
 # ==========================================
 
 def draw_text(
@@ -109,27 +105,22 @@ def draw_text(
         message,
         (20, y),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.6,
+        0.55,
         color,
         2
     )
 
 
 # ==========================================
-# MAIN FACIAL DETECTOR
+# MAIN DETECTOR
 # ==========================================
 
 def run_detector():
 
-    # Verify MediaPipe model exists
-    if not MODEL_PATH.exists():
+    if not MODEL_PATH.is_file():
         raise FileNotFoundError(
-            f"MediaPipe model not found: {MODEL_PATH}"
+            f"Model not found: {MODEL_PATH}"
         )
-
-    # --------------------------------------
-    # INITIALIZE CAMERA FIRST
-    # --------------------------------------
 
     camera = cv2.VideoCapture(
         0,
@@ -137,113 +128,254 @@ def run_detector():
     )
 
     if not camera.isOpened():
-        raise RuntimeError("Cannot open webcam")
-
-    # Allow MacBook camera to initialize
-    time.sleep(2)
-
-    success, test_frame = camera.read()
-
-    if not success or test_frame is None:
-        camera.release()
         raise RuntimeError(
-            "Camera opened but cannot capture frames"
+            "Cannot open MacBook webcam"
         )
 
-    print(
-        "Webcam initialized successfully!",
-        flush=True
-    )
-
     # --------------------------------------
-    # CONFIGURE MEDIAPIPE
-    # --------------------------------------
-
-    options = FaceLandmarkerOptions(
-        base_options=BaseOptions(
-            model_asset_path=str(MODEL_PATH)
-        ),
-        running_mode=RunningMode.VIDEO,
-        num_faces=1,
-        output_face_blendshapes=True
-    )
-
-    # --------------------------------------
-    # INITIALIZE FEATURE MODULES
+    # FEATURE MODULES
     # --------------------------------------
 
     tongue = TongueDetector()
     eyebrows = EyebrowHighlighter()
-    mouse = MouseActions(enabled=ENABLE_CLICKS)
+    mouse = MouseActions(enabled=False)
 
-    # Automatic tongue calibration
     calibrator = AutoCalibrator(tongue)
+    voice = VoiceListener()
 
-    # Prevent an immediate click when
-    # automatic calibration finishes
+    calibrating = False
     waiting_for_release = True
+    speech_typer = SpeechTyper()
 
-    start_time = time.monotonic()
-
-    print("AI Computer Controller started")
-    print("Automatic tongue calibration enabled")
-    print("M = toggle mouse controls")
-    print("Q = quit")
-    print(f"Mouse enabled: {ENABLE_CLICKS}")
+    status = "Say 'Computer start calibration'"
 
     # --------------------------------------
-    # MAIN CAMERA LOOP
+    # DISABLE MOUSE
     # --------------------------------------
+
+    def disable_mouse():
+        nonlocal waiting_for_release, status
+
+        mouse.set_enabled(False)
+
+        eyebrows.reset()
+        tongue.reset()
+
+        waiting_for_release = True
+        status = "Mouse OFF"
+
+    # --------------------------------------
+    # START CALIBRATION
+    # --------------------------------------
+
+    def begin_calibration():
+        nonlocal calibrating, status
+
+        disable_mouse()
+
+        calibrator.reset()
+        calibrating = True
+
+        status = "Calibrating..."
+
+        print(
+            "CALIBRATION STARTED",
+            flush=True
+        )
+
+    # --------------------------------------
+    # ENABLE MOUSE
+    # --------------------------------------
+
+    def enable_mouse():
+        nonlocal waiting_for_release, status
+
+        if calibrating or not calibrator.finished:
+            status = (
+                "Complete calibration first"
+            )
+
+            print(status, flush=True)
+            return
+
+        # Release previous button state first
+        mouse.stop_highlight()
+
+        eyebrows.reset()
+        tongue.reset()
+
+        waiting_for_release = True
+
+        try:
+            mouse.set_enabled(True)
+            status = (
+                "Mouse ON - relax gestures first"
+            )
+
+        except Exception as error:
+            disable_mouse()
+
+            print(
+                "Mouse error:",
+                error,
+                flush=True
+            )
+
+    # ======================================
+    # START APPLICATION
+    # ======================================
 
     try:
+        time.sleep(2)
+
+        success, test_frame = camera.read()
+
+        if not success or test_frame is None:
+            raise RuntimeError(
+                "Cannot capture webcam frames"
+            )
+
+        print(
+            "Webcam initialized!",
+            flush=True
+        )
+
+        options = FaceLandmarkerOptions(
+            base_options=BaseOptions(
+                model_asset_path=str(MODEL_PATH)
+            ),
+            running_mode=RunningMode.VIDEO,
+            num_faces=1,
+            output_face_blendshapes=True
+        )
+
+        start_time = time.monotonic()
+
+        print(
+            "Starting facial controller...",
+            flush=True
+        )
+
+        # ----------------------------------
+        # START MEDIAPIPE FIRST
+        # ----------------------------------
+
         with FaceLandmarker.create_from_options(
             options
         ) as detector:
 
+            print(
+                "MediaPipe ready!",
+                flush=True
+            )
+
+            # Start the separate voice process
+            voice.start()
+
+            print(
+                "Voice commands:",
+                flush=True
+            )
+            print(
+                "Computer start calibration",
+                flush=True
+            )
+            print(
+                "Computer enable mouse",
+                flush=True
+            )
+            print(
+                "Computer disable mouse",
+                flush=True
+            )
+            print(
+                "Keyboard: C / M / X / Q",
+                flush=True
+            )
+
+            # ==============================
+            # MAIN CAMERA LOOP
+            # ==============================
+
             while True:
+
+                # --------------------------
+                # PROCESS VOICE COMMANDS
+                # --------------------------
+
+                
+                # ----------------------------------
+                # VOICE COMMANDS AND DICTATION
+                # ----------------------------------
+
+                for command in voice.get_commands():
+
+                    # Recognized speech to type
+                    if isinstance(command, tuple):
+
+                        action, text = command
+
+                        if action == "type_text":
+                            speech_typer.type_text(text)
+
+                        continue
+
+                    if command == "calibrate":
+                        begin_calibration()
+
+                    elif command == "enable_mouse":
+                        enable_mouse()
+
+                    elif command == "disable_mouse":
+                        disable_mouse()
+                        status = "Mouse OFF"
+
+                    elif command == "start_typing":
+
+                        # Stop facial mouse actions
+                        # to prevent accidental clicks
+                        disable_mouse()
+
+                        speech_typer.start()
+
+                        status = (
+                            "DICTATION ON - speak to type"
+                        )
+
+                    elif command == "stop_typing":
+
+                        speech_typer.stop()
+
+                        status = "DICTATION OFF"
+
+                    elif command == "new_line":
+
+                        speech_typer.new_line()
+
+
+                # --------------------------
+                # READ CAMERA
+                # --------------------------
 
                 success, frame = camera.read()
 
-                # Retry if the webcam temporarily fails
                 if not success or frame is None:
                     print(
-                        "Waiting for webcam...",
+                        "Camera frame unavailable",
                         flush=True
-                    )
-
-                    for _ in range(10):
-                        time.sleep(0.2)
-
-                        success, frame = camera.read()
-
-                        if success and frame is not None:
-                            print(
-                                "Webcam connected!",
-                                flush=True
-                            )
-                            break
-
-                if not success or frame is None:
-                    print(
-                        "Failed to capture frame after retries"
                     )
                     break
 
-                # Mirror webcam image
                 frame = cv2.flip(frame, 1)
 
                 now = time.monotonic()
-
-                # ----------------------------------
-                # MEDIAPIPE FACE DETECTION
-                # ----------------------------------
 
                 rgb = cv2.cvtColor(
                     frame,
                     cv2.COLOR_BGR2RGB
                 )
 
-                mp_image = mp.Image(
+                image = mp.Image(
                     image_format=mp.ImageFormat.SRGB,
                     data=rgb
                 )
@@ -253,7 +385,7 @@ def run_detector():
                 )
 
                 result = detector.detect_for_video(
-                    mp_image,
+                    image,
                     timestamp
                 )
 
@@ -261,15 +393,16 @@ def run_detector():
                     result.face_landmarks
                 )
 
-                # ----------------------------------
-                # PROCESS FACIAL FEATURES
-                # ----------------------------------
+                # ==========================
+                # FACE DETECTED
+                # ==========================
 
                 if face_visible:
 
-                    landmarks = result.face_landmarks[0]
+                    landmarks = (
+                        result.face_landmarks[0]
+                    )
 
-                    # Get facial blendshape scores
                     shapes = {}
 
                     if result.face_blendshapes:
@@ -278,15 +411,6 @@ def run_detector():
                             for item in result.face_blendshapes[0]
                         }
 
-                    jaw_open = shapes.get(
-                        "jawOpen",
-                        0.0
-                    )
-
-                    # ----------------------------------
-                    # TONGUE DETECTION SCORE
-                    # ----------------------------------
-
                     score, mouth_box = (
                         tongue.calculate_score(
                             frame,
@@ -294,84 +418,19 @@ def run_detector():
                         )
                     )
 
-                    # ----------------------------------
-                    # AUTOMATIC CALIBRATION
-                    # ----------------------------------
-
-                    was_calibrated = calibrator.finished
-
-                    calibrated = calibrator.update(
-                        score,
-                        True,
-                        frame
+                    jaw_open = shapes.get(
+                        "jawOpen",
+                        0.0
                     )
 
-                    if not was_calibrated and calibrated:
-                        waiting_for_release = True
+                    brow_score = shapes.get(
+                        "browInnerUp",
+                        0.0
+                    )
 
-                    if not calibrated:
-
-                        # Disable gesture actions while
-                        # calibration is running
-                        tongue.reset()
-                        eyebrows.reset()
-                        mouse.stop_highlight()
-
-                    else:
-
-                        # ----------------------------------
-                        # WAIT FOR TONGUE RELEASE
-                        # ----------------------------------
-
-                        tongue_visible = (
-                            tongue.threshold is not None
-                            and score > tongue.threshold
-                            and jaw_open > 0.12
-                        )
-
-                        if waiting_for_release:
-
-                            if not tongue_visible:
-                                waiting_for_release = False
-
-                                print(
-                                    "Gesture controls ready!"
-                                )
-
-                        # ----------------------------------
-                        # PROCESS GESTURES
-                        # ----------------------------------
-
-                        if not waiting_for_release:
-
-                            # Eyebrow highlighting
-                            eyebrow_action = eyebrows.update(
-                                shapes,
-                                now
-                            )
-
-                            if eyebrow_action == "start":
-                                mouse.start_highlight()
-
-                            elif eyebrow_action == "stop":
-                                mouse.stop_highlight()
-
-                            # Tongue-controlled right click
-                            right_click = tongue.update(
-                                score,
-                                jaw_open,
-                                now
-                            )
-
-                            if (
-                                right_click
-                                and not eyebrows.highlighting
-                            ):
-                                mouse.right_click()
-
-                    # ----------------------------------
-                    # DRAW VISUALIZATION
-                    # ----------------------------------
+                    # ----------------------
+                    # DRAW LANDMARKS
+                    # ----------------------
 
                     draw_landmarks(
                         frame,
@@ -389,88 +448,153 @@ def run_detector():
                             2
                         )
 
+                    # ----------------------
+                    # CALIBRATION
+                    # ----------------------
+
+                    if calibrating:
+
+                        finished = calibrator.update(
+                            score,
+                            True,
+                            frame
+                        )
+
+                        if finished:
+                            calibrating = False
+                            waiting_for_release = True
+
+                            tongue.reset()
+                            eyebrows.reset()
+
+                            status = (
+                                "Calibration complete! "
+                                "Enable mouse when ready"
+                            )
+
+                            print(
+                                "CALIBRATION COMPLETE",
+                                flush=True
+                            )
+
+                    # ----------------------
+                    # GESTURE CONTROLS
+                    # ----------------------
+
+                    elif (
+                        mouse.enabled
+                        and calibrator.finished
+                    ):
+
+                        tongue_visible = (
+                            tongue.threshold is not None
+                            and score > tongue.threshold
+                            and jaw_open > 0.12
+                        )
+
+                        brows_neutral = (
+                            brow_score
+                            < eyebrows.release_threshold
+                        )
+
+                        if waiting_for_release:
+
+                            # Do not trigger a click
+                            # immediately after enabling
+                            if (
+                                not tongue_visible
+                                and brows_neutral
+                            ):
+                                waiting_for_release = False
+
+                                tongue.reset()
+                                eyebrows.reset()
+
+                                print(
+                                    "GESTURES READY",
+                                    flush=True
+                                )
+
+                        else:
+
+                            # Eyebrow highlighting
+                            eyebrow_action = (
+                                eyebrows.update(
+                                    shapes,
+                                    now
+                                )
+                            )
+
+                            if eyebrow_action == "start":
+                                mouse.start_highlight()
+
+                            elif eyebrow_action == "stop":
+                                mouse.stop_highlight()
+
+                            # Tongue right-click
+                            right_click = tongue.update(
+                                score,
+                                jaw_open,
+                                now
+                            )
+
+                            if (
+                                right_click
+                                and not eyebrows.highlighting
+                            ):
+                                mouse.right_click()
+
+                    # ----------------------
+                    # CONTROLS INACTIVE
+                    # ----------------------
+
+                    else:
+                        tongue.reset()
+                        eyebrows.reset()
+                        mouse.stop_highlight()
+
+                    # ----------------------
+                    # DISPLAY SCORES
+                    # ----------------------
+
                     draw_text(
                         frame,
-                        f"Tongue score: {score:.3f}",
+                        f"Tongue score: {score:.1f}",
                         40
                     )
 
                     draw_text(
                         frame,
-                        f"Eyebrow score: {eyebrows.score:.2f}",
-                        75
+                        f"Eyebrows: {brow_score:.2f}",
+                        70
                     )
 
-                    # ----------------------------------
-                    # STATUS DISPLAY
-                    # ----------------------------------
-
-                    if not calibrated:
-
-                        draw_text(
-                            frame,
-                            "CALIBRATING...",
-                            110,
-                            (0, 255, 255)
-                        )
-
-                    elif waiting_for_release:
-
-                        draw_text(
-                            frame,
-                            "Retract tongue to begin",
-                            110,
-                            (0, 255, 255)
-                        )
-
-                    elif eyebrows.highlighting:
-
+                    if mouse.dragging:
                         draw_text(
                             frame,
                             "HIGHLIGHTING",
-                            110,
+                            100,
                             (0, 255, 0)
                         )
 
-                    else:
-
-                        draw_text(
-                            frame,
-                            "Controls Ready",
-                            110,
-                            (0, 255, 0)
-                        )
-
-                    if calibrated and tongue.detected:
-
-                        draw_text(
-                            frame,
-                            "TONGUE DETECTED",
-                            145,
-                            (0, 255, 255)
-                        )
+                # ==========================
+                # FACE LOST
+                # ==========================
 
                 else:
-
-                    # ----------------------------------
-                    # FACE LOST - SAFETY RESET
-                    # ----------------------------------
-
                     tongue.reset()
+                    eyebrows.reset()
 
-                    if eyebrows.reset() == "stop":
-                        mouse.stop_highlight()
+                    mouse.stop_highlight()
 
-                    # Return calibration to ready stage
-                    # if calibration has not finished
-                    if not calibrator.finished:
+                    waiting_for_release = True
+
+                    if calibrating:
                         calibrator.update(
                             None,
                             False,
                             frame
                         )
-
-                    waiting_for_release = True
 
                     draw_text(
                         frame,
@@ -479,29 +603,49 @@ def run_detector():
                         (0, 0, 255)
                     )
 
-                # ----------------------------------
-                # DISPLAY MOUSE STATUS
-                # ----------------------------------
+                # ==========================
+                # STATUS DISPLAY
+                # ==========================
 
                 height = frame.shape[0]
 
-                mouse_status = (
-                    "ON" if mouse.enabled else "OFF"
+                mouse_label = (
+                    "ON" if mouse.enabled
+                    else "OFF"
+                )
+
+                if voice.ready:
+                    voice_label = "READY"
+
+                elif voice.error:
+                    voice_label = "ERROR"
+
+                else:
+                    voice_label = "STARTING"
+
+                draw_text(
+                    frame,
+                    (
+                        f"Mouse: {mouse_label} "
+                        f"| Voice: {voice_label}"
+                    ),
+                    height - 90
                 )
 
                 draw_text(
                     frame,
-                    f"Mouse Controls: {mouse_status}",
-                    height - 55,
-                    (0, 255, 0)
-                    if mouse.enabled
-                    else (0, 0, 255)
+                    status[:60],
+                    height - 60,
+                    (0, 255, 255)
                 )
 
                 draw_text(
                     frame,
-                    "M: Toggle Mouse  Q: Quit",
-                    height - 20
+                    (
+                        "C: Calibrate M: Enable "
+                        "X: Disable Q: Quit"
+                    ),
+                    height - 25
                 )
 
                 cv2.imshow(
@@ -509,37 +653,43 @@ def run_detector():
                     frame
                 )
 
-                # ----------------------------------
-                # KEYBOARD SHORTCUTS
-                # ----------------------------------
+                # ==========================
+                # KEYBOARD BACKUPS
+                # ==========================
 
                 key = cv2.waitKey(1) & 0xFF
 
-                if key == ord("m"):
+                if key == ord("c"):
+                    begin_calibration()
 
-                    # Do not allow real mouse actions
-                    # before calibration succeeds
-                    if calibrator.finished:
-                        mouse.set_enabled(
-                            not mouse.enabled
-                        )
-                    else:
-                        print(
-                            "Complete calibration first."
-                        )
+                elif key == ord("m"):
+                    enable_mouse()
+
+                elif key == ord("x"):
+                    disable_mouse()
 
                 elif key == ord("q"):
                     break
 
-    # --------------------------------------
+    # ======================================
     # CLEANUP
-    # --------------------------------------
+    # ======================================
+
+    except KeyboardInterrupt:
+        print(
+            "Stopped by user",
+            flush=True
+        )
 
     finally:
+        speech_typer.stop()
         mouse.cleanup()
+        voice.stop()
+
         camera.release()
         cv2.destroyAllWindows()
 
         print(
-            "AI Computer Controller stopped"
+            "AI Computer Controller stopped",
+            flush=True
         )
