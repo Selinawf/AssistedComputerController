@@ -7,6 +7,7 @@ import pyautogui
 
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+from eye_tracking.eye_blinking import BlinkDetector
 
 # Configuration
 MODEL_PATH = "face_landmarker.task"
@@ -34,12 +35,12 @@ options = vision.FaceLandmarkerOptions(
     running_mode=vision.RunningMode.VIDEO,
     num_faces=1
 )
+def headinitialize():
+    calibration_x = None
+    calibration_y = None
 
-calibration_x = None
-calibration_y = None
-
-current_x = screen_w / 2
-current_y = screen_h / 2
+    current_x = screen_w / 2
+    current_y = screen_h / 2
 
 start_time = time.monotonic()
 
