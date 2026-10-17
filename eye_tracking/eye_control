@@ -1,0 +1,130 @@
+from magnetic_cursor import magnetic_position
+print("PROGRAM STARTED!", flush=True)
+
+import ctypes
+import cv2
+import pyautogui
+import math
+from eyetrax import GazeEstimator, run_9_point_calibration
+
+# Get screen dimensions
+screen_width, screen_height = pyautogui.size()
+
+# Keep emergency failsafe enabled
+pyautogui.FAILSAFE = True
+pyautogui.PAUSE = 0
+
+# Initialize EyeTrax
+estimator = GazeEstimator()
+
+print("Starting eye calibration...")
+run_9_point_calibration(estimator)
+
+print("Calibration complete!")
+
+# Open webcam
+cap = cv2.VideoCapture(0)
+
+if not cap.isOpened():
+    raise RuntimeError("Could not open webcam")
+
+# Cursor movement settings
+SMOOTHING = 0.10
+DEAD_ZONE = 18
+MAX_SPEED = 25
+
+# Base offsets (correct overall alignment)
+X_OFFSET = -130
+Y_OFFSET = -30
+
+# Additional correction toward screen edges
+X_EDGE_CORRECTION = 120
+Y_EDGE_CORRECTION = 90
+
+# Sensitivity
+X_SENSITIVITY = 1.50
+Y_SENSITIVITY = 1.50
+
+# Initial cursor position
+smooth_x, smooth_y = pyautogui.position()
+
+print("Eye-controlled cursor active!")
+print("Press Q in the camera window to quit.")
+
+try:
+    while True:
+        ret, frame = cap.read()
+
+        if not ret:
+            break
+
+        # Extract eye features
+        features, blink = estimator.extract_features(frame)
+
+        # Only move when eyes are detected and open
+        if features is not None and not blink:
+
+            # Predict gaze coordinates
+            x, y = estimator.predict([features])[0]
+           
+            # Apply manual calibration
+            # Screen center
+            center_x = screen_width / 2
+            center_y = screen_height / 2
+
+            # Start with the raw gaze prediction
+            raw_x, raw_y = x, y
+
+            # Normalize position relative to center (-1 to +1)
+            relative_x = (raw_x - center_x) / center_x
+            relative_y = (raw_y - center_y) / center_y
+
+            # Limit the normalized values
+            relative_x = max(-1, min(1, relative_x))
+            relative_y = max(-1, min(1, relative_y))
+
+       
+            # Pull the cursor toward nearby buttons and controls
+            x, y = magnetic_position(x, y)
+
+
+            # Keep coordinates inside screen
+            x = max(1, min(screen_width - 2, x))
+            y = max(1, min(screen_height - 2, y))
+
+            # Calculate distance to predicted gaze
+            dx = x - smooth_x
+            dy = y - smooth_y
+            distance = math.hypot(dx, dy)
+
+            # Ignore small movements
+            if distance > DEAD_ZONE:
+
+                # Smooth cursor movement
+                move_x = dx * SMOOTHING
+                move_y = dy * SMOOTHING
+
+                # Limit maximum movement per frame
+                movement = math.hypot(move_x, move_y)
+
+                if movement > MAX_SPEED:
+                    scale = MAX_SPEED / movement
+                    move_x *= scale
+                    move_y *= scale
+
+                smooth_x += move_x
+                smooth_y += move_y
+
+                # Move Windows cursor
+                pyautogui.moveTo(
+                    int(smooth_x),
+                    int(smooth_y)
+                )
+
+        # Press ESC to stop tracking, even without a camera window
+        if ctypes.windll.user32.GetAsyncKeyState(0x1B) & 0x8000:
+            break
+
+finally:
+    cap.release()
+    cv2.destroyAllWindows()

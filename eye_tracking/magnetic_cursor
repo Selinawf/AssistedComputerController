@@ -1,0 +1,174 @@
+
+import math
+import time
+import uiautomation as auto
+
+# Magnetic cursor settings
+MAGNET_RADIUS = 150       # How close gaze must be to a control
+MAGNET_STRENGTH = 0.95   # 0 = off, 1 = strongest
+
+TEXT_MAGNET_RADIUS = 90
+TEXT_MAGNET_STRENGTH = 0.95
+
+REFRESH_INTERVAL = 2.0   # Seconds between interface scans
+
+# Types of elements to attract the cursor toward
+CLICKABLE_TYPES = {
+    "ButtonControl",
+    "HyperlinkControl",
+    "CheckBoxControl",
+    "RadioButtonControl",
+    "EditControl",
+    "ComboBoxControl",
+    "TabItemControl",
+    "MenuItemControl",
+
+    # New: text and symbols
+    "TextControl",
+    "ImageControl",
+}
+
+_targets = []
+_last_refresh = 0
+
+
+def find_clickable_elements():
+    """Find buttons, text, and icons in the foreground window."""
+    results = []
+
+    try:
+        root = auto.GetForegroundControl()
+        if root is None:
+            return results
+
+        stack = [(root, 0)]
+        visited = 0
+
+        while stack and visited < 150:
+            control, depth = stack.pop()
+            visited += 1
+
+            try:
+                rect = control.BoundingRectangle
+                width = rect.right - rect.left
+                height = rect.bottom - rect.top
+                kind = control.ControlTypeName
+
+                if kind in CLICKABLE_TYPES:
+
+                    # Avoid snapping to entire paragraphs or huge images
+                    if kind in {"TextControl", "ImageControl"}:
+                        valid = (
+                            5 <= width <= 220
+                            and 5 <= height <= 65
+                        )
+                    else:
+                        valid = (
+                            8 <= width <= 700
+                            and 8 <= height <= 250
+                        )
+
+                    if valid:
+                        results.append((
+                            rect.left,
+                            rect.top,
+                            rect.right,
+                            rect.bottom,
+                            kind
+                        ))
+
+                if depth < 3:
+                    for child in control.GetChildren():
+                        stack.append((child, depth + 1))
+
+            except Exception:
+                continue
+
+    except Exception:
+        pass
+
+    return results
+
+
+
+def magnetic_position(x, y):
+    """Snap gaze toward nearby accessible elements."""
+    global _targets, _last_refresh
+
+    now = time.monotonic()
+
+    if now - _last_refresh >= REFRESH_INTERVAL:
+        _targets = find_clickable_elements()
+        _last_refresh = now
+
+    closest = None
+    best_score = float("inf")
+
+    for left, top, right, bottom, kind in _targets:
+
+        is_text = kind in {"TextControl", "ImageControl"}
+
+        radius = (
+            TEXT_MAGNET_RADIUS if is_text
+            else MAGNET_RADIUS
+        )
+
+        near_x = max(left, min(x, right))
+        near_y = max(top, min(y, bottom))
+
+        distance = math.hypot(x - near_x, y - near_y)
+
+        if distance > radius:
+            continue
+
+        # Prefer actual clickable controls over decorative text
+        priority = 20 if is_text else 0
+        score = distance + priority
+
+        if score < best_score:
+            best_score = score
+            closest = (left, top, right, bottom, kind, distance)
+
+    if closest is None:
+        return x, y
+
+    left, top, right, bottom, kind, distance = closest
+
+    is_text = kind in {"TextControl", "ImageControl"}
+
+    radius = (
+        TEXT_MAGNET_RADIUS if is_text
+        else MAGNET_RADIUS
+    )
+
+    strength = (
+        TEXT_MAGNET_STRENGTH if is_text
+        else MAGNET_STRENGTH
+    )
+
+    width = right - left
+    height = bottom - top
+
+    # Aim at center for small words, icons and buttons
+    if width <= 220:
+        target_x = (left + right) / 2
+    else:
+        target_x = max(left + 12, min(x, right - 12))
+
+    if height <= 80:
+        target_y = (top + bottom) / 2
+    else:
+        target_y = max(top + 10, min(y, bottom - 10))
+
+    proximity = 1 - distance / radius
+
+    attraction = strength * (0.75 + 0.25 * proximity)
+
+    # Full snap for small clickable controls
+    if not is_text and width <= 180 and height <= 80:
+        attraction = 1.0
+
+    corrected_x = x + attraction * (target_x - x)
+    corrected_y = y + attraction * (target_y - y)
+
+    return corrected_x, corrected_y
