@@ -6,6 +6,10 @@ import cv2
 import mediapipe as mp
 import pyautogui
 
+
+from voice_control.listener import VoiceListener
+from voice_control.voiceassistant import VoiceAssistant
+
 from controls.mouse_actions import MouseActions
 from facial_recognition.calibration import AutoCalibrator
 from facial_recognition.features.tongue_detection import TongueDetector
@@ -97,9 +101,7 @@ def run_detector():
 
     # Open the Mac webcam before MediaPipe.
     camera = cv2.VideoCapture(
-        0,
-        cv2.CAP_AVFOUNDATION
-    )
+        0)
 
     if not camera.isOpened():
         camera.release()
@@ -109,6 +111,11 @@ def run_detector():
     eyebrows = EyebrowHighlighter()
     blink_detector = BlinkDetector()
     nose_cursor = NoseCursor()
+
+    voice_listener = VoiceListener()
+    voice_listener.start()
+
+    irisvoice = VoiceAssistant()
     
     mouse = MouseActions(enabled=False)
     calibrator = AutoCalibrator(tongue)
@@ -161,10 +168,12 @@ def run_detector():
         if calibrating or not calibrator.finished:
             status = "Complete calibration first"
             print(status, flush=True)
+            irisvoice.speak("Complete calibration first.")
             return
 
         if speech_typer.enabled:
             status = "Stop dictation first"
+            irisvoice.speak("Stop dictation first.")
             print(status, flush=True)
             return
 
@@ -175,6 +184,7 @@ def run_detector():
 
         status = "Mouse ON - relax your face"
         print("MOUSE ON", flush=True)
+        irisvoice.speak("Mouse on.")
 
     def set_blink(enabled):
         nonlocal status
@@ -227,11 +237,13 @@ def run_detector():
             if not nose_cursor.enabled:
                 nose_cursor.start()
             status = "Nose tracking ON"
+            irisvoice.speak("Nose tracking on.")
 
         elif command == "disable_nose":
             if nose_cursor.enabled:
                 nose_cursor.stop()
             status = "Nose tracking OFF"
+            irisvoice.speak("Nose tracking off.")
 
         elif command == "recenter_nose":
             if nose_cursor.enabled:
@@ -262,12 +274,14 @@ def run_detector():
 
             speech_typer.start()
             status = "DICTATION ON"
+            irisvoice.speak("Dictation started.")
 
         elif command == "stop_typing":
             speech_typer.stop()
             if nose_cursor.enabled:
                 nose_cursor.unfreeze()
             status = "DICTATION OFF"
+            irisvoice.speak("Dictation stopped.")
 
         elif command == "new_line":
             speech_typer.new_line()
@@ -485,6 +499,7 @@ def run_detector():
                         if calibrator.stage == "failed":
                             calibrating = False
                             status = "Tongue calibration failed - press C to retry"
+                            irisvoice.speak("Tongue calibration failed.")
 
                         elif calibrator.finished:
                             calibrating = False
@@ -500,6 +515,7 @@ def run_detector():
                                 "CALIBRATION COMPLETE",
                                 flush=True,
                             )
+                            irisvoice.speak("Calibration completed.")
 
                     # --------------------------
                     # FACIAL MOUSE CONTROLS
