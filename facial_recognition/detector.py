@@ -110,6 +110,7 @@ def run_detector():
     tongue = TongueDetector()
     eyebrows = EyebrowHighlighter()
     blink_detector = BlinkDetector()
+
     nose_cursor = NoseCursor()
 
     # VoiceListener is started once after MediaPipe initialization.
@@ -409,7 +410,6 @@ def run_detector():
     # ======================================
 
     try:
-        
         # Allow the MacBook webcam to warm up
         print("Initializing webcam...", flush=True)
 

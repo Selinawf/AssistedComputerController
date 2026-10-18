@@ -74,6 +74,41 @@ COMMANDS = {
     "switch love": "switch_window_left",
     "next window": "switch_window_right",
     "previous window": "switch_window_left",
+    # Browser tab management
+    "new tab": "new_tab",
+    "open tab": "new_tab",
+    "open a tab": "new_tab",
+    "open new tab": "new_tab",
+    "open a new tab": "new_tab",
+    "create tab": "new_tab",
+    "create a tab": "new_tab",
+    "create a new tab": "new_tab",
+    "computer new tab": "new_tab",
+    "computer open new tab": "new_tab",
+    "close tab": "close_tab",
+    "close a tab": "close_tab",
+    "close this tab": "close_tab",
+    "close current tab": "close_tab",
+    "close the current tab": "close_tab",
+    "delete tab": "close_tab",
+    "delete this tab": "close_tab",
+    "remove tab": "close_tab",
+    "computer close tab": "close_tab",
+    "next tab": "next_tab",
+    "switch to next tab": "next_tab",
+    "go to next tab": "next_tab",
+    "previous tab": "previous_tab",
+    "switch to previous tab": "previous_tab",
+    "go to previous tab": "previous_tab",
+
+    # Reopen closed tab
+    "reopen closed tab": "reopen_tab",
+    "reopen last tab": "reopen_tab",
+    "restore tab": "reopen_tab",
+    "undo close tab": "reopen_tab",
+    "computer reopen tab": "reopen_tab",
+    "open last closed tab": "reopen_tab",
+
 }
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}
@@ -172,6 +207,16 @@ def run_voice_worker():
                         last_typing_time = time.monotonic()
                         print("CMD:delete_word", flush=True)
                     continue
+
+                # Tab commands must still work while dictation is active.
+                # Require "computer" in typing mode to avoid confusing
+                # ordinary dictated sentences with navigation commands.
+                if typing_mode and phrase.startswith("computer "):
+                    tab_command = COMMANDS.get(phrase.removeprefix("computer "))
+                    if tab_command in {"new_tab", "close_tab", "next_tab", "previous_tab"}:
+                        print(f"CMD:{tab_command}", flush=True)
+                        last_typing_time = time.monotonic()
+                        continue
 
                 if typing_mode:
                     last_typing_time = time.monotonic()
