@@ -590,6 +590,20 @@ def run_detector():
 
                     landmarks = result.face_landmarks[0]
 
+                    if blink_detector.enabled:
+                        draw_text(
+                            frame,
+                            f"Eye EAR: {blink_detector.current_ear:.3f}",
+                            160,
+                        )
+
+                        draw_text(
+                            frame,
+                            f"Blink Count: {blink_detector.blink_count}",
+                            190,
+                            (0, 255, 255),
+                        )
+                    
                     if nose_cursor.enabled:
                         try:
                             nose_cursor.update(landmarks, frame)
