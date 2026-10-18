@@ -44,6 +44,16 @@ COMMANDS = {
     "freeze know is": "freeze_cursor",
     "unfreeze knows": "unfreeze_cursor",
     "unfreeze know is": "unfreeze_cursor",
+    # Scrolling
+    "scroll up a little": "scroll_up_little",
+    "scroll down a little": "scroll_down_little",
+    "scroll up a lot": "scroll_up_lot",
+    "scroll down a lot": "scroll_down_lot",
+    "scroll up": "scroll_up",
+    "scroll down": "scroll_down",
+    "scroll faster": "scroll_faster",
+    "scroll slower": "scroll_slower",
+    "stop scrolling": "stop_scrolling",
 }
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}
@@ -150,7 +160,7 @@ def run_voice_worker():
 
                 # First attempt an exact match
                 command = COMMANDS.get(phrase)
-                
+
                 if command is None:
                     words = phrase.split()
 

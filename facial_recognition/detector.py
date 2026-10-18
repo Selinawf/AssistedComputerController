@@ -129,6 +129,14 @@ def run_detector():
     calibrating = False
     waiting_for_release = True
     status = "Say Computer start calibration"
+    
+    # ======================================
+    # VOICE SCROLL SETTINGS
+    # ======================================
+
+    scroll_amount = 5
+    scroll_min = 1
+    scroll_max = 20
 
     # ======================================
     # CONTROL HELPERS
@@ -201,8 +209,8 @@ def run_detector():
         print(status, flush=True)
 
     def handle_voice_command(command):
-        nonlocal status
-
+        nonlocal status, scroll_amount
+        
         print(
             "Received voice command:",
             command,
@@ -215,6 +223,61 @@ def run_detector():
             if action == "type_text":
                 speech_typer.type_text(text)
 
+            return
+
+
+        # ======================================
+        # VOICE SCROLL COMMANDS
+        # ======================================
+
+        if command in (
+            "scroll_up",
+            "scroll_down",
+            "scroll_up_little",
+            "scroll_down_little",
+            "scroll_up_lot",
+            "scroll_down_lot",
+        ):
+            if command.endswith("_little"):
+                amount = max(1, scroll_amount // 2)
+
+            elif command.endswith("_lot"):
+                amount = scroll_amount * 3
+
+            else:
+                amount = scroll_amount
+
+            direction = 1 if "up" in command else -1
+
+            pyautogui.scroll(direction * amount)
+
+            status = f"Scrolled {command.replace('_', ' ')}"
+            print(status, flush=True)
+            return
+
+        elif command == "scroll_faster":
+            scroll_amount = min(
+                scroll_max,
+                scroll_amount + 2
+            )
+
+            status = f"Scroll speed: {scroll_amount}"
+            print(status, flush=True)
+            return
+
+        elif command == "scroll_slower":
+            scroll_amount = max(
+                scroll_min,
+                scroll_amount - 2
+            )
+
+            status = f"Scroll speed: {scroll_amount}"
+            print(status, flush=True)
+            return
+
+        elif command == "stop_scrolling":
+            status = "Scrolling stopped"
+            print(status, flush=True)
             return
 
         if command == "calibrate":
