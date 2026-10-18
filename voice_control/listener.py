@@ -54,6 +54,11 @@ COMMANDS = {
     "scroll faster": "scroll_faster",
     "scroll slower": "scroll_slower",
     "stop scrolling": "stop_scrolling",
+    "show voice commands": "show_voice_menu",
+    "show keyboard commands": "show_keyboard_menu",
+    "hide commands": "hide_commands",
+    "hi commands": "hide_commands",
+    "close menu": "hide_commands",
 }
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}
