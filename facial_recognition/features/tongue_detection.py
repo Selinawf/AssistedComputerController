@@ -203,14 +203,14 @@ class TongueDetector:
         )
 
         # Show what blocks the tongue gesture
-        if self.is_tongue_score(score):
-            print(
-                f"Tongue candidate: score={score:.1f}, "
-                f"threshold={self.threshold:.1f}, "
-                f"jaw={jaw_open:.2f}, "
-                f"detected={self.detected}",
-                flush=True
-            )
+        # if self.is_tongue_score(score):
+        #     print(
+        #         f"Tongue candidate: score={score:.1f}, "
+        #         f"threshold={self.threshold:.1f}, "
+        #         f"jaw={jaw_open:.2f}, "
+        #         f"detected={self.detected}",
+        #         flush=True
+        #     )
 
         if not self.detected:
             self.reset()
