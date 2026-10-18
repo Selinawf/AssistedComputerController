@@ -131,45 +131,6 @@ def run_detector():
     menu_state: dict[str, str | None] = {"current": None}
 
     # ======================================
-    # BROWSER TAB VOICE COMMANDS
-    # ======================================
-    # These shortcuts are sent to the currently focused application.
-    if command == "new_tab":
-        pyautogui.hotkey("ctrl", "t")
-        status = "New tab shortcut sent"
-        print(status, flush=True)
-        irisvoice.speak("Opening a new tab.")
-        return
-
-    elif command == "close_tab":
-        pyautogui.hotkey("ctrl", "w")
-        status = "Close tab shortcut sent"
-        print(status, flush=True)
-        irisvoice.speak("Closing the current tab.")
-        return
-
-    elif command == "next_tab":
-        pyautogui.hotkey("ctrl", "tab")
-        status = "Next tab shortcut sent"
-        print(status, flush=True)
-        irisvoice.speak("Next tab.")
-        return
-
-    elif command == "previous_tab":
-        pyautogui.hotkey("ctrl", "shift", "tab")
-        status = "Previous tab shortcut sent"
-        print(status, flush=True)
-        irisvoice.speak("Previous tab.")
-        return
-        
-    elif command == "reopen_tab":
-        pyautogui.hotkey("ctrl", "shift", "t")
-        status = "Reopen tab shortcut sent"
-        print(status, flush=True)
-        irisvoice.speak("Reopening your last closed tab.")
-        return
-        
-    # ======================================
     # VOICE SCROLL SETTINGS
     # ======================================
 
@@ -266,6 +227,23 @@ def run_detector():
 
 
         # ======================================
+        # BROWSER TAB VOICE COMMANDS (macOS)
+        # ======================================
+        # Shortcuts apply to the active application.
+        tab_shortcuts = {
+            "new_tab": ("command", "t"),
+            "close_tab": ("command", "w"),
+            "next_tab": ("ctrl", "tab"),
+            "previous_tab": ("ctrl", "shift", "tab"),
+            "reopen_tab": ("command", "shift", "t"),
+        }
+        if command in tab_shortcuts:
+            pyautogui.hotkey(*tab_shortcuts[command])
+            status = command.replace("_", " ").title()
+            print(status, flush=True)
+            return
+
+        # ======================================
         # VOICE SCROLL COMMANDS
         # ======================================
         if command in (
@@ -324,37 +302,29 @@ def run_detector():
         # ======================================
 
         
-# ======================================
-# MACOS APPLICATION SWITCHING
-# ======================================
+        # MACOS APPLICATION SWITCHING
 
-        if command == "switch_window_right":
+        # macOS app switcher follows its recent-use order, NOT
+        # the left/right screen positions of application windows.
+        if command in ("switch_window_right", "switch_window_left"):
+            going_right = command == "switch_window_right"
             pyautogui.keyDown("command")
             try:
-                pyautogui.press("tab")
-                pyautogui.press("tab")
-                time.sleep(0.2)
-            finally:
-                pyautogui.keyUp("command")
-
-            status = "Switched application right"
-            print(status, flush=True)
-            return
-
-        elif command == "switch_window_left":
-            pyautogui.keyDown("command")
-            try:
-                pyautogui.keyDown("shift")
+                if not going_right:
+                    pyautogui.keyDown("shift")
                 try:
-                    pyautogui.press("tab")
-                    pyautogui.press("tab")
+                    # Open switcher then move another step.
+                    # The currently selected app depends on recency.
+                    pyautogui.press("tab", presses=2, interval=0.15)
                     time.sleep(0.2)
                 finally:
-                    pyautogui.keyUp("shift")
+                    if not going_right:
+                        pyautogui.keyUp("shift")
             finally:
                 pyautogui.keyUp("command")
 
-            status = "Switched application left"
+            direction = "right" if going_right else "left"
+            status = f"App switcher moved {direction}"
             print(status, flush=True)
             return
 
