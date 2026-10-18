@@ -19,6 +19,8 @@ VOICE_COMMANDS = [
     ("This menu", "Show voice commands"),
     ("Keyboard menu", "Show keyboard commands"),
     ("Close menu", "Hide commands"),
+    ("NEXT APP", "Switch window right"),
+    ("PREVIOUS APP", "Switch window left"),
 ]
 
 KEYBOARD_COMMANDS = [
@@ -61,9 +63,13 @@ def draw_command_menu(frame, menu_type):
     cv2.rectangle(overlay, (0, 0), (width, height), (19, 28, 43), -1)
     cv2.addWeighted(overlay, 0.94, frame, 0.06, 0, frame)
 
-    title = "IRIS - VOICE COMMANDS" if menu_type == "voice" else "IRIS - KEYBOARD COMMANDS"
+    title = (
+        "IRIS - VOICE COMMANDS" if menu_type == "voice" else "IRIS - KEYBOARD COMMANDS"
+    )
     title_scale = _fitting_scale(title, font, 0.95, width - 30)
-    cv2.putText(frame, title, (15, 37), font, title_scale, (100, 230, 255), 2, cv2.LINE_AA)
+    cv2.putText(
+        frame, title, (15, 37), font, title_scale, (100, 230, 255), 2, cv2.LINE_AA
+    )
     cv2.line(frame, (15, 48), (width - 15, 48), (80, 130, 160), 1)
 
     # Two columns, each command on two lines. Larger than the old 0.32-sized text.
@@ -84,13 +90,37 @@ def draw_command_menu(frame, menu_type):
             row_top = int(top + index * row_height)
             label_scale = _fitting_scale(label + ":", font, preferred, max_text_width)
             phrase_scale = _fitting_scale(phrase, font, preferred, max_text_width)
-            cv2.putText(frame, label + ":", (x, row_top), font, label_scale,
-                        (130, 220, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, phrase, (x, row_top + max(18, int(row_height * 0.45))),
-                        font, phrase_scale, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(
+                frame,
+                label + ":",
+                (x, row_top),
+                font,
+                label_scale,
+                (130, 220, 255),
+                2,
+                cv2.LINE_AA,
+            )
+            cv2.putText(
+                frame,
+                phrase,
+                (x, row_top + max(18, int(row_height * 0.45))),
+                font,
+                phrase_scale,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
 
     footer = 'Say "Hide commands" to close'
     footer_scale = _fitting_scale(footer, font, 0.62, width - 30)
-    cv2.putText(frame, footer, (15, height - 10), font, footer_scale,
-                (150, 255, 170), 1, cv2.LINE_AA)
+    cv2.putText(
+        frame,
+        footer,
+        (15, height - 10),
+        font,
+        footer_scale,
+        (150, 255, 170),
+        1,
+        cv2.LINE_AA,
+    )
     return frame

@@ -59,6 +59,21 @@ COMMANDS = {
     "hide commands": "hide_commands",
     "hi commands": "hide_commands",
     "close menu": "hide_commands",
+    # ======================================
+    # WINDOW SWITCHING COMMANDS
+    # ======================================
+    "switch window right": "switch_window_right",
+    "right switch": "switch_window_right",
+    "switch window left": "switch_window_left",
+    "left switch": "switch_window_left",
+    "next app": "switch_window_right",
+    "previous app": "switch_window_left",
+    # Alternative phrases
+    "switch right": "switch_window_right",
+    "switch left": "switch_window_left",
+    "switch love": "switch_window_left",
+    "next window": "switch_window_right",
+    "previous window": "switch_window_left",
 }
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}

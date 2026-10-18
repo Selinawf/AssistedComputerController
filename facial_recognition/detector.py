@@ -278,6 +278,46 @@ def run_detector():
             print(status, flush=True)
             return
 
+        
+        # ======================================
+        # VOICE WINDOW SWITCHING
+        # ======================================
+
+        
+# ======================================
+# MACOS APPLICATION SWITCHING
+# ======================================
+
+        if command == "switch_window_right":
+            pyautogui.keyDown("command")
+            try:
+                pyautogui.press("tab")
+                pyautogui.press("tab")
+                time.sleep(0.2)
+            finally:
+                pyautogui.keyUp("command")
+
+            status = "Switched application right"
+            print(status, flush=True)
+            return
+
+        elif command == "switch_window_left":
+            pyautogui.keyDown("command")
+            try:
+                pyautogui.keyDown("shift")
+                try:
+                    pyautogui.press("tab")
+                    pyautogui.press("tab")
+                    time.sleep(0.2)
+                finally:
+                    pyautogui.keyUp("shift")
+            finally:
+                pyautogui.keyUp("command")
+
+            status = "Switched application left"
+            print(status, flush=True)
+            return
+
         if command == "calibrate":
             begin_calibration()
 
