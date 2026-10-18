@@ -53,14 +53,16 @@ class SpeechTyper:
 
         pyautogui.press("enter")
 
-    def delete_word(self):
+
+    def delete_word(self, count=1):
         if not self.enabled:
             return
 
-        pyautogui.hotkey("option", "shift", "left")
-        pyautogui.press("backspace")
+        count = max(1, int(count))
 
-        print(
-            "DELETED LAST WORD",
-            flush=True
-        )
+        # macOS: delete the previous word repeatedly
+        for _ in range(count):
+            pyautogui.hotkey("option", "backspace")
+
+        print(f"DELETED LAST {count} WORD(S)", flush=True)
+
