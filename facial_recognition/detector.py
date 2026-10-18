@@ -285,8 +285,8 @@ def run_detector():
 
         elif command == "new_line":
             speech_typer.new_line()
-        elif command == "delete_word":
-            speech_typer.delete_word()
+        elif isinstance(command, tuple) and command[0] == "delete_words":
+            speech_typer.delete_word(command[1])
 
     # ======================================
     # START THE APPLICATION
