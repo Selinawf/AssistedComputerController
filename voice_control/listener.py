@@ -6,7 +6,9 @@ import subprocess
 import sys
 import threading
 import time
+import re
 from pathlib import Path
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = PROJECT_ROOT / "models" / "vosk-model-small-en-us-0.15"
@@ -93,6 +95,44 @@ COMMANDS = {
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}
 
+def parse_delete_count(phrase):
+    """Return a word count for delete commands, or None if not a match."""
+    number_words = {
+        "a": 1,
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+
+    match = re.fullmatch(
+        r"(?:computer )?delete "
+        r"(?:(?:last|previous) )?"
+        r"(a|one|two|three|four|five|six|seven|eight|nine|ten|\d+) "
+        r"words?",
+        phrase,
+    )
+
+    if match:
+        value = match.group(1)
+        count = number_words.get(value)
+
+        if count is None:
+            count = int(value)
+
+        # Safety limit to prevent accidental huge deletions.
+        return max(1, min(count, 100))
+
+    if phrase in DELETE_WORD_COMMANDS:
+        return 1
+
+    return None
 
 def run_voice_worker():
     # Native sounddevice and Vosk libraries remain OUTSIDE the MediaPipe process.
@@ -175,6 +215,14 @@ def run_voice_worker():
 
                 if phrase in STOP_COMMANDS:
                     stop_typing()
+                    continue
+                
+                delete_count = parse_delete_count(phrase)
+
+                if delete_count is not None:
+                    if typing_mode:
+                        last_typing_time = time.monotonic()
+                        print(f"CMD:delete_words:{delete_count}", flush=True)
                     continue
 
                 # Tab commands must still work while dictation is active.
@@ -305,11 +353,22 @@ class VoiceListener:
                     print("Voice controls ready!", flush=True)
                 elif line.startswith("CMD:"):
                     command = line[4:]
-                    self.commands.put(command)
-                    if command == "start_typing":
-                        self.typing_mode = True
-                    elif command == "stop_typing":
-                        self.typing_mode = False
+
+                    if command.startswith("delete_words:"):
+                        try:
+                            count = int(command.split(":", 1)[1])
+                            self.commands.put(("delete_words", count))
+                        except ValueError:
+                            print(f"Invalid delete command: {command}", flush=True)
+                            continue
+                    else:
+                        self.commands.put(command)
+
+                        if command == "start_typing":
+                            self.typing_mode = True
+                        elif command == "stop_typing":
+                            self.typing_mode = False
+
                     print(f"Voice command: {command}", flush=True)
                 elif line.startswith("TYPE:"):
                     words = line[5:]

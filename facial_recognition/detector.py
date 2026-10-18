@@ -431,7 +431,24 @@ def run_detector():
 
         elif command == "new_line":
             speech_typer.new_line()
+        elif isinstance(command, tuple) and command[0] == "delete_words":
+            speech_typer.delete_word(command[1])
 
+
+        if command == "show_voice_menu":
+            menu_state["current"] = "voice"
+            status = "Voice command menu"
+            return
+
+        elif command == "show_keyboard_menu":
+            menu_state["current"] = "keyboard"
+            status = "Keyboard command menu"
+            return
+
+        elif command == "hide_commands":
+            menu_state["current"] = None
+            status = "Commands hidden"
+            return
     # ======================================
     # START THE APPLICATION
     # ======================================
