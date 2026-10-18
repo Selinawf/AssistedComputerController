@@ -346,6 +346,8 @@ def run_detector():
 
         elif command == "new_line":
             speech_typer.new_line()
+        elif command == "delete_word":
+            speech_typer.delete_word()
 
 
         if command == "show_voice_menu":

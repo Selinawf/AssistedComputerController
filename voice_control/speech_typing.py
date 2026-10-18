@@ -52,3 +52,15 @@ class SpeechTyper:
             return
 
         pyautogui.press("enter")
+
+    def delete_word(self):
+        if not self.enabled:
+            return
+
+        pyautogui.hotkey("option", "shift", "left")
+        pyautogui.press("backspace")
+
+        print(
+            "DELETED LAST WORD",
+            flush=True
+        )
