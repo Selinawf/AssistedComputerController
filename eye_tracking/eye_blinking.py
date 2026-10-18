@@ -8,11 +8,11 @@ class BlinkDetector:
 
     def __init__(self):
         # Adjust these if necessary
-        self.close_threshold = 0.21       # Detect slightly less complete eye closures
-        self.open_threshold = 0.24        # Recognize reopening
-        self.min_blink_duration = 0.04    # Accept quicker blinks
-        self.max_blink_duration = 0.40
-        self.double_blink_window = 0.75   # More time for second blink
+        self.close_threshold = 0.24       # Detect slightly less complete eye closures
+        self.open_threshold = 0.27        # Recognize reopening
+        self.min_blink_duration = 0.03    # Accept quicker blinks
+        self.max_blink_duration = 0.50
+        self.double_blink_window = 0.8   # More time for second blink
 
         # Blink clicking starts enabled
         self.enabled = True
