@@ -65,10 +65,22 @@ def draw_landmarks(frame, landmarks):
         [362, 385, 387, 263, 373, 380],
     ]
 
+    
+    eyes: list[list[int]] = [
+        [33, 160, 158, 133, 153, 144],
+        [362, 385, 387, 263, 373, 380],
+    ]
+
     for eye in eyes:
         for i in range(len(eye)):
             a = landmarks[eye[i]]
             b = landmarks[eye[(i + 1) % len(eye)]]
+
+            p1 = (int(a.x * width), int(a.y * height))
+            p2 = (int(b.x * width), int(b.y * height))
+
+            cv2.line(frame, p1, p2, (255, 0, 0), 2)
+
 
             p1 = (int(a.x * width), int(a.y * height))
             p2 = (int(b.x * width), int(b.y * height))
@@ -209,7 +221,7 @@ def run_detector():
         print(status, flush=True)
 
     def handle_voice_command(command):
-        nonlocal status
+        nonlocal status, scroll_amount
 
         print(
             "Received voice command:",
