@@ -140,6 +140,7 @@ def run_detector():
     calibrating = False
     waiting_for_release = True
     status = "Say Computer start calibration"
+    mouse_was_enabled_before_typing = False
     menu_state: dict[str, str | None] = {"current": None}
 
     # ======================================
@@ -404,6 +405,7 @@ def run_detector():
 
         elif command == "stop_typing":
             speech_typer.stop()
+            enable_mouse()
             if nose_cursor.enabled:
                 nose_cursor.unfreeze()
             status = "DICTATION OFF"
