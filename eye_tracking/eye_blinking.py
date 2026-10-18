@@ -8,11 +8,11 @@ class BlinkDetector:
 
     def __init__(self):
         # Adjust these if necessary
-        self.close_threshold = 0.21       # Detect slightly less complete eye closures
-        self.open_threshold = 0.24        # Recognize reopening
-        self.min_blink_duration = 0.04    # Accept quicker blinks
-        self.max_blink_duration = 0.40
-        self.double_blink_window = 0.75   # More time for second blink
+        self.close_threshold = 0.24       # Detect slightly less complete eye closures
+        self.open_threshold = 0.27        # Recognize reopening
+        self.min_blink_duration = 0.03    # Accept quicker blinks
+        self.max_blink_duration = 0.50
+        self.double_blink_window = 0.80   # More time for second blink
 
         # Blink clicking starts enabled
         self.enabled = True
@@ -20,7 +20,7 @@ class BlinkDetector:
         self.eyes_closed = False
         self.blink_start = None
         self.first_blink_time = None
-        self.last_click_time = float("-inf")
+        self.last_click_time = float("-inf")       
         self.click_cooldown = 0.8
 
     def distance(self, a, b):
@@ -33,7 +33,7 @@ class BlinkDetector:
         vertical2 = self.distance(p[2], p[4])
         horizontal = self.distance(p[0], p[3])
 
-        if horizontal == 0:
+        if horizontal <= 1e-6:
             return 0
 
         return (vertical1 + vertical2) / (2 * horizontal)
@@ -96,8 +96,14 @@ class BlinkDetector:
         elif self.eyes_closed and ear > self.open_threshold:
             self.eyes_closed = False
 
+            # Make sure a valid blink start time exists.
+            if self.blink_start is None:
+                self.reset()
+                return False, False
+
             duration = now - self.blink_start
             self.blink_start = None
+
 
             valid_blink = (
                 self.min_blink_duration

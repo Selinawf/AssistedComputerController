@@ -123,7 +123,7 @@ def run_detector():
     speech_typer = SpeechTyper()
 
     # Real clicking starts disabled.
-    blink_detector.enabled = False
+    blink_detector.enabled = True
 
     calibrating = False
     waiting_for_release = True
