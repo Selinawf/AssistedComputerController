@@ -7,6 +7,7 @@ import mediapipe as mp
 import pyautogui
 
 
+from voice_control.listener import VoiceListener
 from voice_control.voiceassistant import VoiceAssistant
 
 from controls.mouse_actions import MouseActions
@@ -17,7 +18,6 @@ from eye_tracking.eye_blinking import BlinkDetector
 from voice_control.listener import VoiceListener
 from voice_control.speech_typing import SpeechTyper
 from nose_tracking.nose_bridge import NoseCursor
-from controls.command_menu import draw_command_menu
 
 # ==========================================
 # SETTINGS
@@ -115,7 +115,9 @@ def run_detector():
 
     print("Nose tracking started!", flush=True)
 
-    # VoiceListener is started once after MediaPipe initialization.
+    voice_listener = VoiceListener()
+    voice_listener.start()
+
     irisvoice = VoiceAssistant()
     
     mouse = MouseActions(enabled=False)
@@ -130,8 +132,7 @@ def run_detector():
     calibrating = False
     waiting_for_release = True
     status = "Say Computer start calibration"
-    menu_state: dict[str, str | None] = {"current": None}
-     
+    
     # ======================================
     # VOICE SCROLL SETTINGS
     # ======================================
@@ -231,6 +232,7 @@ def run_detector():
         # ======================================
         # VOICE SCROLL COMMANDS
         # ======================================
+
         if command in (
             "scroll_up",
             "scroll_down",
@@ -429,24 +431,7 @@ def run_detector():
 
         elif command == "new_line":
             speech_typer.new_line()
-        elif command == "delete_word":
-            speech_typer.delete_word()
 
-
-        if command == "show_voice_menu":
-            menu_state["current"] = "voice"
-            status = "Voice command menu"
-            return
-
-        elif command == "show_keyboard_menu":
-            menu_state["current"] = "keyboard"
-            status = "Keyboard command menu"
-            return
-
-        elif command == "hide_commands":
-            menu_state["current"] = None
-            status = "Commands hidden"
-            return
     # ======================================
     # START THE APPLICATION
     # ======================================
@@ -889,9 +874,6 @@ def run_detector():
                     "C Calibrate M Mouse X Off K Blink Q Quit",
                     height - 20,
                 )
-
-                # Voice-controlled command reference overlay.
-                draw_command_menu(frame, menu_state["current"])
 
                 cv2.imshow(
                     "AI Assisted Computer Controller",

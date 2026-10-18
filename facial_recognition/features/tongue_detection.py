@@ -203,6 +203,7 @@ class TongueDetector:
         )
 
         # Show what blocks the tongue gesture
+<<<<<<< HEAD
         # if self.is_tongue_score(score):
         #     print(
         #         f"Tongue candidate: score={score:.1f}, "
@@ -220,6 +221,8 @@ class TongueDetector:
            #     flush=True
           #  )
 
+=======
+>>>>>>> 4d01f85aa888000be8ef7f1aa7011cb29e7975f9
         if not self.detected:
             self.reset()
             return False

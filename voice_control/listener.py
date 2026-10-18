@@ -92,12 +92,6 @@ COMMANDS = {
 }
 STOP_COMMANDS = {"computer stop typing", "stop typing", "stop dictation"}
 NEW_LINE_COMMANDS = {"computer new line", "new line"}
-DELETE_WORD_COMMANDS = {
-    "delete word",
-    "computer delete word",
-    "delete last word",
-    "computer delete last word",
-}
 
 
 def run_voice_worker():
@@ -181,11 +175,6 @@ def run_voice_worker():
 
                 if phrase in STOP_COMMANDS:
                     stop_typing()
-                    continue
-                if phrase in DELETE_WORD_COMMANDS:
-                    if typing_mode:
-                        last_typing_time = time.monotonic()
-                        print("CMD:delete_word", flush=True)
                     continue
 
                 # Tab commands must still work while dictation is active.
