@@ -209,8 +209,8 @@ def run_detector():
         print(status, flush=True)
 
     def handle_voice_command(command):
-        nonlocal status, scroll_amount
-        
+        nonlocal status
+
         print(
             "Received voice command:",
             command,
@@ -218,10 +218,13 @@ def run_detector():
         )
 
         if isinstance(command, tuple):
-            action, text = command
+            action, value = command
 
             if action == "type_text":
-                speech_typer.type_text(text)
+                speech_typer.type_text(value)
+
+            elif action == "delete_words":
+                speech_typer.delete_word(value)
 
             return
 
@@ -651,7 +654,6 @@ def run_detector():
                     elif (
                         mouse.enabled
                         and calibrator.finished
-                        and not speech_typer.enabled
                     ):
 
                         tongue_visible = (
