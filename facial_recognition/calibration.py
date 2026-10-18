@@ -195,12 +195,12 @@ class AutoCalibrator:
                     tongue_value - self.baseline
                 )
 
-                print(
-                    f"Tongue change: {tongue_value:.2f}% "
-                    f"| difference {difference:+.2f}% "
-                    f"| minimum {required:.2f}%",
-                    flush=True
-                )
+                #print(
+                    #f"Tongue change: {tongue_value:.2f}% "
+                    #f"| difference {difference:+.2f}% "
+                   # f"| minimum {required:.2f}%",
+                   # flush=True
+              #  )
 
                 if difference >= required:
                     self.tongue.baseline = self.baseline

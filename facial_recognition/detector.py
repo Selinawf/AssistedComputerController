@@ -110,7 +110,11 @@ def run_detector():
     tongue = TongueDetector()
     eyebrows = EyebrowHighlighter()
     blink_detector = BlinkDetector()
+
     nose_cursor = NoseCursor()
+    nose_cursor.start()
+
+    print("Nose tracking started!", flush=True)
 
     voice_listener = VoiceListener()
     voice_listener.start()
@@ -278,6 +282,45 @@ def run_detector():
         elif command == "stop_scrolling":
             status = "Scrolling stopped"
             print(status, flush=True)
+            return
+
+        # ======================================
+        # BROWSER TAB VOICE COMMANDS
+        # ======================================
+        # These shortcuts are sent to the currently focused application.
+        if command == "new_tab":
+            pyautogui.hotkey("ctrl", "t")
+            status = "New tab shortcut sent"
+            print(status, flush=True)
+            irisvoice.speak("Opening a new tab.")
+            return
+
+        elif command == "close_tab":
+            pyautogui.hotkey("ctrl", "w")
+            status = "Close tab shortcut sent"
+            print(status, flush=True)
+            irisvoice.speak("Closing the current tab.")
+            return
+
+        elif command == "next_tab":
+            pyautogui.hotkey("ctrl", "tab")
+            status = "Next tab shortcut sent"
+            print(status, flush=True)
+            irisvoice.speak("Next tab.")
+            return
+
+        elif command == "previous_tab":
+            pyautogui.hotkey("ctrl", "shift", "tab")
+            status = "Previous tab shortcut sent"
+            print(status, flush=True)
+            irisvoice.speak("Previous tab.")
+            return
+        
+        elif command == "reopen_tab":
+            pyautogui.hotkey("ctrl", "shift", "t")
+            status = "Reopen tab shortcut sent"
+            print(status, flush=True)
+            irisvoice.speak("Reopening your last closed tab.")
             return
 
         if command == "calibrate":
